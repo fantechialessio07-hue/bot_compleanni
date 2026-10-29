@@ -8,6 +8,24 @@ import gspread
 from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, CommandHandler
 from zoneinfo import ZoneInfo
+from flask import Flask
+from threading import Thread
+
+# --- Finto server web per mantenere felice Render ---
+app_web = Flask(__name__)
+
+@app_web.route('/')
+def home():
+    return "Il bot di Telegram è attivo e online!"
+
+def run_web():
+    port = int(os.environ.get("PORT", 10000))
+    app_web.run(host="0.0.0.0", port=port)
+
+Thread(target=run_web, daemon=True).start()
+
+
+
 
 # --- CONFIGURAZIONE DEL SISTEMA DI LOG ---
 logging.basicConfig(
