@@ -190,7 +190,7 @@ async def inserisci(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
     )
 
-# --- 2. COMANDO /lista (Ordinato, con Intestazione e Link Cliccabili) ---
+# --- 2. COMANDO /lista (Ordinato, con Data Prima e Nomi Cliccabili) ---
 async def mostralista(update: Update, context: ContextTypes.DEFAULT_TYPE):
   try:
     righe = worksheet.get_all_values()
@@ -226,7 +226,7 @@ async def mostralista(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Ordiniamo cronologicamente
     dati_ordinati = sorted(dati_compleanni, key=lambda x: x["data_dt"])
 
-    # Costruiamo il messaggio con i link cliccabili in HTML
+    # Costruiamo il messaggio con data a sinistra e nome cliccabile a destra
     testo_lista = "📅 Lista Compleanni Registrati:\n\n"
 
     for item in dati_ordinati:
@@ -234,16 +234,17 @@ async def mostralista(update: Update, context: ContextTypes.DEFAULT_TYPE):
       nome = item["nome"]
       data = item["data_str"]
 
-      # Ricreiamo il link cliccabile
+      # Link cliccabile in HTML
       if user_id and user_id.isdigit():
         nome_display = f'<a href="tg://user?id={user_id}">{nome}</a>'
       elif nome.startswith("@"):
         username_pulito = nome.lstrip("@")
-        nome_display = f'<a href="[https://t.me/](https://t.me/){username_pulito}">{nome}</a>'
+        nome_display = f'<a href="https://t.me/{username_pulito}">{nome}</a>'
       else:
         nome_display = nome
 
-      testo_lista += f"• {nome_display} ➔ {data}\n"
+      # Mettiamo prima la data (lunghezza fissa) e poi il nome cliccabile
+      testo_lista += f"• {data} ➔ {nome_display}\n"
 
     await update.message.reply_text(
         testo_lista, parse_mode="HTML", disable_web_page_preview=True
