@@ -190,13 +190,11 @@ async def inserisci(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
     )
 
-
-# --- 2. COMANDO /lista (Ordinato Cronologicamente e Allineato) ---
+# --- 2. COMANDO /lista (Ordinato, con Intestazione e Link Cliccabili) ---
 async def mostralista(update: Update, context: ContextTypes.DEFAULT_TYPE):
   try:
     righe = worksheet.get_all_values()
 
-    # Controlla se il foglio è vuoto o contiene solo l'intestazione
     if len(righe) <= 1:
       await update.message.reply_text(
           "📭 **Nessun compleanno registrato!** La lista è ancora vuota.",
@@ -204,21 +202,19 @@ async def mostralista(update: Update, context: ContextTypes.DEFAULT_TYPE):
       )
       return
 
-    # Estraiamo i record saltando l'intestazione
     dati_compleanni = []
     for riga in righe[1:]:
       user_id = riga[0].strip() if len(riga) > 0 else ""
       nome = riga[1].strip() if len(riga) > 1 else "Sconosciuto"
       data_str = riga[2].strip() if len(riga) > 2 else "--/--"
 
-      # Creiamo l'oggetto data per l'ordinamento
       try:
         data_dt = datetime.strptime(data_str, "%d/%m")
       except ValueError:
         try:
           data_dt = datetime.strptime(data_str, "%d/%m/%Y")
         except ValueError:
-          data_dt = datetime(9999, 12, 31)  # Le date non valide vanno in fondo
+          data_dt = datetime(9999, 12, 31)
 
       dati_compleanni.append({
           "user_id": user_id,
@@ -227,34 +223,38 @@ async def mostralista(update: Update, context: ContextTypes.DEFAULT_TYPE):
           "data_dt": data_dt,
       })
 
-    # Ordiniamo cronologicamente in base alla data
+    # Ordiniamo cronologicamente
     dati_ordinati = sorted(dati_compleanni, key=lambda x: x["data_dt"])
 
-    # Calcoliamo la lunghezza massima del nome per l'allineamento perfetto
-    max_nome_len = max((len(item["nome"]) for item in dati_ordinati), default=10)
-    max_nome_len = max(max_nome_len, 12)  # Larghezza minima di sicurezza
-
-    # Costruiamo il messaggio finale con la nuova intestazione e font monospaziato
-    testo_lista = "📅 Lista Compleanni Registrati:\n"
-    testo_lista += "```text\n"
+    # Costruiamo il messaggio con i link cliccabili in HTML
+    testo_lista = "📅 Lista Compleanni Registrati:\n\n"
 
     for item in dati_ordinati:
+      user_id = item["user_id"]
       nome = item["nome"]
       data = item["data_str"]
 
-      # Aggiunge spazi per allineare la colonna delle date
-      nome_allineato = f"{nome:<{max_nome_len}}"
-      testo_lista += f"• {nome_allineato} ➔ {data}\n"
+      # Ricreiamo il link cliccabile
+      if user_id and user_id.isdigit():
+        nome_display = f'<a href="tg://user?id={user_id}">{nome}</a>'
+      elif nome.startswith("@"):
+        username_pulito = nome.lstrip("@")
+        nome_display = f'<a href="[https://t.me/](https://t.me/){username_pulito}">{nome}</a>'
+      else:
+        nome_display = nome
 
-    testo_lista += "```"
+      testo_lista += f"• {nome_display} ➔ {data}\n"
 
-    await update.message.reply_text(testo_lista, parse_mode="Markdown")
+    await update.message.reply_text(
+        testo_lista, parse_mode="HTML", disable_web_page_preview=True
+    )
 
   except Exception as e:
     logger.error(f"Errore mostralista: {e}")
     await update.message.reply_text(
         "⚠️ Errore nel recuperare la lista dal Google Sheet."
     )
+
 
 
 # --- 3. COMANDO /elimina (Con controllo anti-data) ---
